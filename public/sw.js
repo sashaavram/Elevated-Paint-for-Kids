@@ -1,6 +1,6 @@
 // Keeps the app working without internet (everything except "Ask Claude to draw").
 // Shows the saved copy right away and quietly fetches a fresh one for next time.
-const CACHE = "kidspaint-v2";
+const CACHE = "kidspaint-v3";
 const FILES = [
   "./", "index.html", "styles.css", "app.js", "stamps.js", "art.js", "fill.js", "scenes.js",
   "manifest.webmanifest", "icon.svg", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
@@ -20,7 +20,7 @@ self.addEventListener("activate", (e) => {
 
 self.addEventListener("fetch", (e) => {
   const url = new URL(e.request.url);
-  if (e.request.method !== "GET" || url.origin !== location.origin || url.pathname.startsWith("/api/")) return;
+  if (e.request.method !== "GET" || url.origin !== location.origin || url.pathname.includes("/api/")) return;
   e.respondWith(
     caches.open(CACHE).then(async (cache) => {
       const cached = await cache.match(e.request, { ignoreSearch: true });

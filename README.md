@@ -15,7 +15,13 @@ A paint app for 3–5 year olds, laid out like Windows Paint. It runs in the bro
 - **Grown-up passcode on every Claude drawing.** A number keypad appears each time, so kids can't spend Claude credit alone. Five wrong tries lock drawing for 15 minutes.
 - **Grown-up settings.** Press and **hold ⚙️ for 2 seconds**: sounds, voice, Claude on/off, more tools, child's name.
 
-## Use it on an iPad (a link)
+## The link (GitHub Pages)
+
+**https://sashaavram.github.io/Elevated-Paint-for-Kids/**
+
+GitHub publishes the app here automatically every time the code changes (`.github/workflows/pages.yml`). Everything works there **except "Ask Claude to draw"**: GitHub Pages can only show files, so it can't keep a Claude key secret or check the passcode, and the Claude button hides itself. To add Claude drawing, use the Render setup below and open the Render link instead.
+
+## Use it on an iPad with Claude drawing (Render)
 
 The iPad only needs a link, but something has to run the small server that keeps your Claude key private. The easiest host is [Render](https://render.com):
 

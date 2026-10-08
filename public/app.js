@@ -782,18 +782,23 @@ const dlgClaude = $("#dlg-claude");
 const promptInput = $("#claude-prompt");
 const claudeMsg = $("#claude-msg");
 
+// On a plain website host (like GitHub Pages) there is no server to keep the
+// Claude key safe, so the Claude button stays hidden there.
+let hasServer = false;
 function applyClaudeVisibility() {
-  $("#btn-claude").hidden = !settings.claude;
+  $("#btn-claude").hidden = !settings.claude || !hasServer;
   renderTabs();
 }
 
-fetch("/api/status")
+fetch("api/status")
   .then((r) => r.json())
   .then((s) => {
+    hasServer = true;
     claudeReady = Boolean(s.claude);
     claudeNeedsCode = Boolean(s.needsCode);
   })
-  .catch(() => { claudeReady = false; });
+  .catch(() => { claudeReady = false; })
+  .finally(applyClaudeVisibility);
 
 function renderIdeas() {
   const box = $("#claude-ideas");
@@ -890,7 +895,7 @@ async function askClaude() {
   const ticker = setInterval(() => { claudeMsg.textContent = THINKING[++i % THINKING.length]; }, 2500);
   try {
     const coloring = new FormData($("#claude-form")).get("mode") === "coloring";
-    const res = await fetch("/api/draw", {
+    const res = await fetch("api/draw", {
       method: "POST",
       headers: { "Content-Type": "application/json", "X-Family-Code": code },
       body: JSON.stringify({ prompt, coloring }),
