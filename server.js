@@ -23,9 +23,10 @@ const MIME = {
 };
 
 // Spending guards, so a shared link can't run up the bill:
-// a per-device limit, a daily limit for the whole server, and an optional family code.
+// a grown-up passcode on every drawing, a per-device limit, and a daily limit for the whole server.
 const DRAWS_PER_MINUTE = Number(process.env.DRAWS_PER_MINUTE) || 6;
 const DAILY_DRAW_LIMIT = Number(process.env.DAILY_DRAW_LIMIT) || 60;
+// The passcode lives only in the server's environment (never in the code on GitHub).
 const FAMILY_CODE = process.env.FAMILY_CODE || "";
 const TRUST_PROXY = process.env.TRUST_PROXY === "1" || Boolean(process.env.RENDER);
 
@@ -54,6 +55,24 @@ function allowToday() {
 function clientIp(req) {
   const forwarded = TRUST_PROXY && req.headers["x-forwarded-for"];
   return forwarded ? String(forwarded).split(",")[0].trim() : req.socket.remoteAddress;
+}
+
+// Too many wrong passcodes locks drawing for a while, so the code can't be guessed.
+const WRONG_PER_DEVICE = 5;
+const WRONG_TOTAL = 30;
+const LOCK_MS = 15 * 60_000;
+const wrongTries = new Map();
+let wrongTotal = { since: 0, count: 0 };
+function lockedOut(ip) {
+  const now = Date.now();
+  if (now - wrongTotal.since > LOCK_MS) wrongTotal = { since: now, count: 0 };
+  const mine = (wrongTries.get(ip) ?? []).filter((t) => now - t < LOCK_MS);
+  wrongTries.set(ip, mine);
+  return mine.length >= WRONG_PER_DEVICE || wrongTotal.count >= WRONG_TOTAL;
+}
+function noteWrong(ip) {
+  wrongTries.get(ip).push(Date.now());
+  wrongTotal.count++;
 }
 
 function codeMatches(given) {
@@ -91,10 +110,15 @@ async function handleDraw(req, res) {
       kidMessage: "Claude is sleeping right now. Ask a grown-up to set it up!",
     });
   }
-  if (!codeMatches(req.headers["x-family-code"])) {
-    return sendJson(res, 401, { error: "family_code", kidMessage: "Ask a grown-up to type the family code!" });
+  const ip = clientIp(req);
+  if (FAMILY_CODE && lockedOut(ip)) {
+    return sendJson(res, 429, { error: "locked", kidMessage: "Too many wrong passcodes. Try again later!" });
   }
-  if (!allowDraw(clientIp(req))) {
+  if (!codeMatches(req.headers["x-family-code"])) {
+    noteWrong(ip);
+    return sendJson(res, 401, { error: "family_code", kidMessage: "That passcode isn't right. Ask a grown-up!" });
+  }
+  if (!allowDraw(ip)) {
     return sendJson(res, 429, { error: "slow_down", kidMessage: "Wow, so many ideas! Let's wait a minute." });
   }
 
@@ -164,7 +188,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   server.listen(PORT, HOST, () => {
     console.log(`Elevated Paint for Kids is running at http://localhost:${PORT}`);
     console.log(hasCredentials()
-      ? `"Ask Claude to draw" is on (model: ${MODEL}, effort: ${EFFORT}, ${DAILY_DRAW_LIMIT} drawings a day${FAMILY_CODE ? ", family code required" : ""}).`
+      ? `"Ask Claude to draw" is on (model: ${MODEL}, effort: ${EFFORT}, ${DAILY_DRAW_LIMIT} drawings a day${FAMILY_CODE ? ", passcode on every drawing" : ", no passcode: set FAMILY_CODE to require one"}).`
       : `"Ask Claude to draw" is off: set ANTHROPIC_API_KEY to turn it on.`);
   });
 }

@@ -21,7 +21,7 @@ test("status says a family code is needed", async () => {
   assert.deepEqual(await res.json(), { claude: true, needsCode: true });
 });
 
-test("drawing without the family code is refused before calling Claude", async () => {
+test("drawing without the passcode is refused before calling Claude", async () => {
   assert.equal((await draw()).status, 401);
   assert.equal((await draw({ "X-Family-Code": "wrong" })).status, 401);
 });
@@ -31,4 +31,11 @@ test("static files are served with safety headers, and paths can't escape public
   assert.equal(res.status, 200);
   assert.match(res.headers.get("content-security-policy"), /default-src 'self'/);
   assert.equal((await fetch(`${base}/..%2fserver.js`)).status, 403);
+});
+
+test("too many wrong passcodes locks drawing, even for the right code", async () => {
+  for (let i = 0; i < 3; i++) await draw({ "X-Family-Code": "guess" + i });
+  const res = await draw({ "X-Family-Code": "rainbow" });
+  assert.equal(res.status, 429);
+  assert.equal((await res.json()).error, "locked");
 });

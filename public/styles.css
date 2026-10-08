@@ -166,3 +166,13 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
   .tool:hover, .size:hover, .toggle:hover { background: #f6f2ff; }
   .claude-btn:hover { transform: none; }
 }
+
+/* passcode keypad */
+.pass-dots { display: flex; justify-content: center; gap: 12px; min-height: 28px; }
+.pass-dots i { width: 20px; height: 20px; border-radius: 50%; background: var(--ink); }
+.keypad { display: grid; grid-template-columns: repeat(3, 72px); gap: 10px; justify-content: center; }
+.keypad button { height: 64px; border-radius: 18px; background: #f1edf7; font-size: 28px; font-family: inherit; }
+.keypad button:active { transform: scale(.94); }
+.keypad .ok { background: var(--active); color: #fff; }
+.dlg.shake { animation: shake .3s; }
+@keyframes shake { 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }

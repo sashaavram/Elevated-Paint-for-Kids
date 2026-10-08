@@ -5,7 +5,7 @@ services:
     name: elevated-paint-for-kids
     runtime: node
     plan: free            # free instances sleep after ~15 min idle; the first visit then takes ~1 minute
-    branch: claude/modest-mccarthy-fq7wy2   # change to main once this is merged
+    branch: claude/modest-mccarthy-fq7wy2
     buildCommand: npm ci
     startCommand: npm start
     healthCheckPath: /api/status
@@ -13,7 +13,7 @@ services:
       - key: ANTHROPIC_API_KEY
         sync: false       # paste your key in the Render dashboard
       - key: FAMILY_CODE
-        sync: false       # any word you like; type it once in the app's grown-up settings
+        sync: false       # your grown-up passcode (numbers), typed before every Claude drawing
       - key: DAILY_DRAW_LIMIT
         value: "60"
       - key: HOST

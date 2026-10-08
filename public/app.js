@@ -30,8 +30,9 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 // ---------- settings (kept per browser) ----------
-const settings = { sound: true, voice: true, claude: true, moreTools: false, kidName: "", familyCode: "" };
+const settings = { sound: true, voice: true, claude: true, moreTools: false, kidName: "" };
 try { Object.assign(settings, JSON.parse(localStorage.getItem("kidspaint.settings") || "{}")); } catch {}
+delete settings.familyCode; // older versions saved it; now it's asked every time
 function saveSettings() {
   try { localStorage.setItem("kidspaint.settings", JSON.stringify(settings)); } catch {}
 }
@@ -745,8 +746,6 @@ function openParent() {
   $("#set-claude").checked = settings.claude;
   $("#set-more").checked = settings.moreTools;
   $("#set-name").value = settings.kidName;
-  $("#set-code").value = settings.familyCode;
-  $("#set-code-row").hidden = !claudeNeedsCode;
   $("#claude-status").textContent = claudeReady
     ? "✅ Claude is connected."
     : "💤 Claude isn't connected: start the server with ANTHROPIC_API_KEY set (see README).";
@@ -761,7 +760,7 @@ for (const [key, id] of [["sound", "sound"], ["voice", "voice"], ["claude", "cla
     applyAgeMode();
   });
 }
-for (const [key, id] of [["kidName", "name"], ["familyCode", "code"]]) {
+for (const [key, id] of [["kidName", "name"]]) {
   $(`#set-${id}`).addEventListener("input", (e) => {
     settings[key] = e.target.value.trim().slice(0, 40);
     saveSettings();
@@ -826,6 +825,47 @@ $("#claude-form").addEventListener("submit", (e) => { e.preventDefault(); askCla
 promptInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); askClaude(); } });
 $("#btn-claude-go").addEventListener("click", askClaude);
 
+// Asks a grown-up for the passcode. Resolves to the digits, or null if cancelled.
+// The code is only kept for this one drawing.
+const dlgPass = $("#dlg-pass");
+let passResolve = null;
+let passDigits = "";
+function renderPass() {
+  $("#pass-dots").innerHTML = "<i></i>".repeat(passDigits.length);
+}
+function finishPass(value) {
+  const resolve = passResolve;
+  passResolve = null;
+  dlgPass.close();
+  resolve?.(value);
+}
+function askPasscode(message) {
+  passDigits = "";
+  renderPass();
+  $("#pass-msg").textContent = message || "A grown-up types the passcode so Claude can draw.";
+  dlgPass.showModal();
+  say("Ask a grown-up to type the passcode");
+  return new Promise((resolve) => { passResolve = resolve; });
+}
+$("#keypad").addEventListener("click", (e) => {
+  const b = e.target.closest("button");
+  if (!b) return;
+  sfx("click");
+  if (b.dataset.key === "back") passDigits = passDigits.slice(0, -1);
+  else if (b.dataset.key === "ok") return passDigits && finishPass(passDigits);
+  else if (passDigits.length < 12) passDigits += b.textContent;
+  renderPass();
+});
+dlgPass.addEventListener("keydown", (e) => {
+  if (/^[0-9]$/.test(e.key) && passDigits.length < 12) passDigits += e.key;
+  else if (e.key === "Backspace") passDigits = passDigits.slice(0, -1);
+  else if (e.key === "Enter" && passDigits) { e.preventDefault(); return finishPass(passDigits); }
+  else return;
+  renderPass();
+});
+$("#pass-cancel").addEventListener("click", () => finishPass(null));
+dlgPass.addEventListener("close", () => { if (passResolve) finishPass(null); });
+
 const THINKING = ["Claude is drawing", "Sharpening crayons", "Adding colors", "Almost there"];
 
 async function askClaude() {
@@ -834,6 +874,11 @@ async function askClaude() {
     claudeMsg.textContent = "Type or say what you want to see!";
     say("What should I draw?");
     return;
+  }
+  let code = "";
+  if (claudeNeedsCode) {
+    code = await askPasscode();
+    if (code === null) return;
   }
   const go = $("#btn-claude-go");
   go.disabled = true;
@@ -847,7 +892,7 @@ async function askClaude() {
     const coloring = new FormData($("#claude-form")).get("mode") === "coloring";
     const res = await fetch("/api/draw", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "X-Family-Code": settings.familyCode },
+      headers: { "Content-Type": "application/json", "X-Family-Code": code },
       body: JSON.stringify({ prompt, coloring }),
     });
     const data = await res.json().catch(() => ({}));

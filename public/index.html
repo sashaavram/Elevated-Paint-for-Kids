@@ -117,6 +117,22 @@
     </form>
   </dialog>
 
+  <!-- Grown-up passcode, asked before every Claude drawing -->
+  <dialog id="dlg-pass" class="dlg small">
+    <div class="dlg-body">
+      <h2>🔒 Grown-up passcode</h2>
+      <p class="note" id="pass-msg">A grown-up types the passcode so Claude can draw.</p>
+      <div class="pass-dots" id="pass-dots" aria-live="polite"></div>
+      <div class="keypad" id="keypad">
+        <button type="button">1</button><button type="button">2</button><button type="button">3</button>
+        <button type="button">4</button><button type="button">5</button><button type="button">6</button>
+        <button type="button">7</button><button type="button">8</button><button type="button">9</button>
+        <button type="button" data-key="back" aria-label="Delete">⌫</button><button type="button">0</button><button type="button" data-key="ok" class="ok" aria-label="OK">✔</button>
+      </div>
+      <div class="dlg-actions"><button class="pill" id="pass-cancel">✖ Cancel</button></div>
+    </div>
+  </dialog>
+
   <!-- Backgrounds -->
   <dialog id="dlg-scene" class="dlg">
     <div class="dlg-body">
@@ -157,8 +173,8 @@
       <label class="setting"><input type="checkbox" id="set-claude"> Show "Ask Claude to draw"</label>
       <label class="setting"><input type="checkbox" id="set-more"> More tools and colors (ages 6+)</label>
       <label class="setting text">Child's name <input id="set-name" maxlength="40" autocomplete="off" placeholder="optional"></label>
-      <label class="setting text" id="set-code-row" hidden>Family code <input id="set-code" maxlength="40" autocomplete="off" autocapitalize="off"></label>
       <p class="note" id="claude-status"></p>
+      <p class="note">When the server has a passcode (FAMILY_CODE), a grown-up types it before every Claude drawing. It is never saved on this device.</p>
       <p class="note">Drawings are kept only in this browser. Claude requests send just the typed or spoken idea to Anthropic's API, through your own server.</p>
       <div class="dlg-actions"><button class="pill go" data-close>Done</button></div>
     </div>

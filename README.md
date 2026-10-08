@@ -12,7 +12,8 @@ A paint app for 3–5 year olds, laid out like Windows Paint. It runs in the bro
 - **Hard to break.** One-tap undo, autosave, "start over?" saves to the gallery first, deleting a gallery picture takes two taps, and pinch-zoom can't move the app.
 - **Magic.** Rainbow and sparkle brushes, 🦋 mirror painting, 🏞️ 8 backgrounds.
 - **🪄 Ask Claude to draw.** Type, tap an idea, or talk (🎤 in Safari or Edge). Choose a color picture or a coloring page, then tap to place it.
-- **Grown-up settings.** Press and **hold ⚙️ for 2 seconds**: sounds, voice, Claude on/off, more tools, child's name, family code.
+- **Grown-up passcode on every Claude drawing.** A number keypad appears each time, so kids can't spend Claude credit alone. Five wrong tries lock drawing for 15 minutes.
+- **Grown-up settings.** Press and **hold ⚙️ for 2 seconds**: sounds, voice, Claude on/off, more tools, child's name.
 
 ## Use it on an iPad (a link)
 
@@ -20,17 +21,16 @@ The iPad only needs a link, but something has to run the small server that keeps
 
 1. Create a free Render account and connect GitHub.
 2. **New + → Blueprint →** pick this repository. Render reads `render.yaml`.
-3. When asked, paste your `ANTHROPIC_API_KEY`, and make up a `FAMILY_CODE` (any word).
+3. When asked, paste your `ANTHROPIC_API_KEY`, and type your passcode as `FAMILY_CODE`. It stays in Render's settings, never in the code on GitHub.
 4. Open the `https://….onrender.com` link on the iPad in Safari.
-5. Press and hold ⚙️ for 2 seconds, then type the family code. Without it, strangers who find the link can't spend your Claude credit.
-6. Optional: **Share → Add to Home Screen** for a full-screen app icon. Voice input (🎤) only works in Safari itself, not from the Home Screen icon (an Apple limitation).
+5. Optional: **Share → Add to Home Screen** for a full-screen app icon. Voice input (🎤) only works in Safari itself, not from the Home Screen icon (an Apple limitation).
 
 The free Render plan sleeps after about 15 minutes without visitors, so the first visit afterwards takes about a minute. A paid plan stays awake.
 
 ## Use it on Windows (installable app)
 
 1. Install [Node.js](https://nodejs.org) 18 or newer.
-2. Put your key in `start-windows.bat` (see the comment inside), then double-click it. The app opens at http://localhost:3000.
+2. Put your key and passcode in `start-windows.bat` (see the comments inside), then double-click it. The app opens at http://localhost:3000.
 3. In Edge, click **⋯ → Apps → Install this site as an app**. You get a Start-menu app with its own window. It works with touchscreens and pens, and works offline (everything except Claude).
 
 You can also install it from the hosted Render link the same way.
@@ -40,21 +40,21 @@ You can also install it from the hosted Render link the same way.
 | Variable | Default | Purpose |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | unset | Turns on Claude drawing |
-| `CLAUDE_MODEL` | `claude-sonnet-5-5` | Model used for drawings |
+| `CLAUDE_MODEL` | `claude-haiku-5-5` | Model used for drawings (`claude-sonnet-5-5` gives more detailed pictures and costs about 20 times more per token) |
 | `CLAUDE_EFFORT` | `medium` | `low` is faster and cheaper, `high` is more detailed |
-| `FAMILY_CODE` | unset | When set, the app must send this code before Claude draws |
+| `FAMILY_CODE` | unset | Grown-up passcode typed before **every** Claude drawing. 5 wrong tries lock drawing for 15 minutes |
 | `DAILY_DRAW_LIMIT` | `60` | Claude drawings per day for the whole server |
 | `DRAWS_PER_MINUTE` | `6` | Per-device limit |
 | `PORT` / `HOST` | `3000` / `127.0.0.1` | Where the server listens (`render.yaml` sets `0.0.0.0`) |
 
 ## How "Ask Claude to draw" works
 
-The browser sends only the child's short idea (200 characters max) to `POST /api/draw`. The server keeps the API key and asks **Claude Sonnet 5.5 at medium effort** for an SVG picture. Its system prompt describes a gentle children's illustrator: if a request isn't suitable, it draws a friendly alternative instead of explaining why. The server removes scripts, event handlers, embedded images and outside links from the SVG. The page only shows it through `<img>`, and a Content-Security-Policy blocks outside content. Requests also use Anthropic's server-side `fallbacks: "default"`: if a safety check declines a request, it is retried on Anthropic's recommended fallback model.
+The browser sends only the child's short idea (200 characters max) to `POST /api/draw`. The server checks the grown-up passcode, keeps the API key, and asks **Claude Haiku 5.5 at medium effort** for an SVG picture. Its system prompt describes a gentle children's illustrator: if a request isn't suitable, it draws a friendly alternative instead of explaining why. The server removes scripts, event handlers, embedded images and outside links from the SVG. The page only shows it through `<img>`, and a Content-Security-Policy blocks outside content.
 
 ## Develop
 
 ```bash
-npm test     # SVG cleaning, paint bucket, family code and server tests
+npm test     # SVG cleaning, paint bucket, passcode and server tests
 ```
 
 Files: `server.js` (static files, API, spending guards), `lib/draw.js` (Claude call), `lib/svg.js` (SVG cleaning), `public/` (the app: `app.js`, `art.js` Paint Pals, `stamps.js` emoji, `fill.js`, `scenes.js`, `sw.js` offline cache, `styles.css`).
