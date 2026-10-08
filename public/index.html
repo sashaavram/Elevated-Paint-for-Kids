@@ -2,7 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#ffcc00">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Kids Paint">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
   <title>Elevated Paint for Kids</title>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -11,6 +17,9 @@
 <body>
   <header class="topbar">
     <div class="brand"><span aria-hidden="true">🎨</span> <b>Elevated Paint</b> <small>for Kids</small></div>
+    <button class="claude-btn" id="btn-claude" data-say="Ask Claude to draw">
+      <span class="claude-ico" aria-hidden="true">🪄</span><span>Ask Claude to draw</span>
+    </button>
     <div class="top-actions">
       <button class="tbtn" id="btn-new" data-say="New picture" aria-label="New picture">🆕</button>
       <button class="tbtn" id="btn-undo" data-say="Undo" aria-label="Undo">↩️</button>
@@ -27,10 +36,10 @@
   <nav class="ribbon" aria-label="Painting tools">
     <section class="group" aria-label="Tools">
       <div class="grid tools">
-        <button class="tool" data-tool="pencil" data-say="Pencil" aria-label="Pencil">✏️</button>
+        <button class="tool" data-advanced data-tool="pencil" data-say="Pencil" aria-label="Pencil">✏️</button>
         <button class="tool active" data-tool="brush" data-say="Paint brush" aria-label="Paint brush">🖌️</button>
         <button class="tool" data-tool="crayon" data-say="Crayon" aria-label="Crayon">🖍️</button>
-        <button class="tool" data-tool="spray" data-say="Spray paint" aria-label="Spray paint">💨</button>
+        <button class="tool" data-advanced data-tool="spray" data-say="Spray paint" aria-label="Spray paint">💨</button>
         <button class="tool" data-tool="rainbow" data-say="Rainbow brush" aria-label="Rainbow brush">🌈</button>
         <button class="tool" data-tool="sparkle" data-say="Sparkle brush" aria-label="Sparkle brush">✨</button>
         <button class="tool" data-tool="fill" data-say="Paint bucket" aria-label="Paint bucket">🪣</button>
@@ -41,9 +50,9 @@
 
     <section class="group" aria-label="Size and magic">
       <div class="sizes">
-        <button class="size" data-size="0" data-say="Small" aria-label="Small"><i style="--d:8px"></i></button>
-        <button class="size active" data-size="1" data-say="Medium" aria-label="Medium"><i style="--d:16px"></i></button>
-        <button class="size" data-size="2" data-say="Big" aria-label="Big"><i style="--d:26px"></i></button>
+        <button class="size" data-advanced data-size="0" data-say="Small" aria-label="Small"><i style="--d:8px"></i></button>
+        <button class="size" data-size="1" data-say="Medium" aria-label="Medium"><i style="--d:16px"></i></button>
+        <button class="size active" data-size="2" data-say="Big" aria-label="Big"><i style="--d:26px"></i></button>
         <button class="size" data-size="3" data-say="Giant" aria-label="Giant"><i style="--d:36px"></i></button>
       </div>
       <div class="sizes">
@@ -64,20 +73,13 @@
       <div class="colors-wrap">
         <div class="current-color" id="current-color" aria-hidden="true"></div>
         <div class="palette" id="palette"></div>
-        <label class="picker" data-say="Mix any color" aria-label="Mix any color">
+        <label class="picker" data-advanced data-say="Mix any color" aria-label="Mix any color">
           <input type="color" id="color-picker" value="#ff3b30">
         </label>
       </div>
       <h2>Colors</h2>
     </section>
 
-    <section class="group claude-group" aria-label="Ask Claude">
-      <button class="claude-btn" id="btn-claude" data-say="Ask Claude to draw">
-        <span class="claude-ico" aria-hidden="true">🪄</span>
-        <span>Ask Claude<br>to draw</span>
-      </button>
-      <h2>Claude</h2>
-    </section>
   </nav>
 
   <main class="stage" id="stage">
@@ -93,7 +95,7 @@
   <!-- Ask Claude -->
   <dialog id="dlg-claude" class="dlg">
     <form method="dialog" class="dlg-body" id="claude-form">
-      <h2>🪄 What should Claude draw?</h2>
+      <h2>🪄 <span id="claude-title">What should Claude draw?</span></h2>
       <div class="ask-row">
         <input id="claude-prompt" maxlength="200" autocomplete="off" placeholder="a happy elephant with a red balloon">
         <button type="button" class="big-ico" id="btn-mic" aria-label="Say it out loud" data-say="Talk to Claude">🎤</button>
@@ -153,6 +155,9 @@
       <label class="setting"><input type="checkbox" id="set-sound"> Sound effects</label>
       <label class="setting"><input type="checkbox" id="set-voice"> Read buttons and stickers out loud</label>
       <label class="setting"><input type="checkbox" id="set-claude"> Show "Ask Claude to draw"</label>
+      <label class="setting"><input type="checkbox" id="set-more"> More tools and colors (ages 6+)</label>
+      <label class="setting text">Child's name <input id="set-name" maxlength="40" autocomplete="off" placeholder="optional"></label>
+      <label class="setting text" id="set-code-row" hidden>Family code <input id="set-code" maxlength="40" autocomplete="off" autocapitalize="off"></label>
       <p class="note" id="claude-status"></p>
       <p class="note">Drawings are kept only in this browser. Claude requests send just the typed or spoken idea to Anthropic's API, through your own server.</p>
       <div class="dlg-actions"><button class="pill go" data-close>Done</button></div>

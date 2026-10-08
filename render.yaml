@@ -1,0 +1,22 @@
+# One-click hosting on Render (render.com), so an iPad can open the app from a link.
+# In Render: New + > Blueprint > pick this repository. It asks for the two secrets below.
+services:
+  - type: web
+    name: elevated-paint-for-kids
+    runtime: node
+    plan: free            # free instances sleep after ~15 min idle; the first visit then takes ~1 minute
+    branch: claude/modest-mccarthy-fq7wy2   # change to main once this is merged
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /api/status
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false       # paste your key in the Render dashboard
+      - key: FAMILY_CODE
+        sync: false       # any word you like; type it once in the app's grown-up settings
+      - key: DAILY_DRAW_LIMIT
+        value: "60"
+      - key: HOST
+        value: 0.0.0.0
+      - key: TRUST_PROXY
+        value: "1"

@@ -1,13 +1,17 @@
-import { STICKER_CATEGORIES, OUTLINES } from "./stamps.js";
+import { STICKER_CATEGORIES } from "./stamps.js";
+import { PAINT_PALS, COLORING_PALS } from "./art.js";
 import { floodFill } from "./fill.js";
 import { SCENES, drawScene } from "./scenes.js";
 
 const W = 1600;
 const H = 1000;
 const BRUSH_SIZES = [6, 14, 28, 48];
-const STICKER_SIZES = [80, 140, 220, 320];
-const MAX_UNDO = 12;
+const STICKER_SIZES = [90, 170, 260, 380];
+const MAX_UNDO = 10; // each step keeps a full copy of the picture; iPad Safari has tight memory
 const EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
+
+// Ages 3-5 get 12 big crayons; "More tools" shows the full box.
+const SIMPLE_COLORS = new Set(["#000000", "#ffffff", "#7a4a2a", "#ff3b30", "#ff9500", "#ffcc00", "#34c759", "#0f8a4a", "#5ac8fa", "#007aff", "#af52de", "#ff2d92"]);
 
 const PALETTE = [
   "#000000", "#5b5b5b", "#a3a3a3", "#ffffff", "#7a4a2a", "#b5651d", "#f1c27d", "#e0ac69", "#8d5524",
@@ -26,7 +30,7 @@ const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
 
 // ---------- settings (kept per browser) ----------
-const settings = { sound: true, voice: true, claude: true };
+const settings = { sound: true, voice: true, claude: true, moreTools: false, kidName: "", familyCode: "" };
 try { Object.assign(settings, JSON.parse(localStorage.getItem("kidspaint.settings") || "{}")); } catch {}
 function saveSettings() {
   try { localStorage.setItem("kidspaint.settings", JSON.stringify(settings)); } catch {}
@@ -38,6 +42,7 @@ function sfx(kind) {
   if (!settings.sound) return;
   try {
     audio ??= new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume(); // iPad starts audio paused until a tap
     const t = audio.currentTime;
     const tone = (freq, start, dur, type = "sine", vol = 0.15, endFreq) => {
       const osc = audio.createOscillator();
@@ -82,22 +87,25 @@ const wrap = $("#canvas-wrap");
 const state = {
   tool: "brush",
   color: "#ff3b30",
-  size: 1,
+  size: 2,
   mirror: false,
   flip: false,
   scene: "white",
   sticker: null, // { kind: "emoji" | "letter" | "image", value, name, sound, img }
-  category: "pets",
+  category: "pals",
 };
 
+// One reusable canvas for "what the picture looks like": making a new one every
+// time quickly runs into Safari's canvas memory limit on iPad.
+const flat = document.createElement("canvas");
+flat.width = W;
+flat.height = H;
+const flatCtx = flat.getContext("2d", { willReadFrequently: true });
 function composite() {
-  const c = document.createElement("canvas");
-  c.width = W;
-  c.height = H;
-  const ctx = c.getContext("2d");
-  ctx.drawImage(bgCanvas, 0, 0);
-  ctx.drawImage(paintCanvas, 0, 0);
-  return c;
+  flatCtx.clearRect(0, 0, W, H);
+  flatCtx.drawImage(bgCanvas, 0, 0);
+  flatCtx.drawImage(paintCanvas, 0, 0);
+  return flat;
 }
 
 function setScene(id) {
@@ -312,7 +320,7 @@ paintCanvas.addEventListener("pointerdown", (e) => {
   paintCanvas.setPointerCapture(e.pointerId);
   if (state.tool === "fill") {
     pushUndo();
-    const changed = floodFill(paint, composite().getContext("2d"), p.x, p.y, state.color, W, H);
+    const changed = floodFill(paint, composite().getContext("2d", { willReadFrequently: true }), p.x, p.y, state.color, W, H);
     if (changed) { sfx("splash"); scheduleAutosave(); } else undoStack.pop();
     updateUndoButtons();
     return;
@@ -406,6 +414,7 @@ for (const color of PALETTE) {
   b.style.background = color;
   b.dataset.color = color;
   b.setAttribute("aria-label", `Color ${color}`);
+  if (!SIMPLE_COLORS.has(color)) b.dataset.advanced = "";
   b.addEventListener("click", () => { setColor(color); sfx("click"); });
   palette.append(b);
 }
@@ -419,8 +428,9 @@ document.addEventListener("click", (e) => {
 
 // ---------- sticker tray ----------
 const claudeCategory = { id: "claude", icon: "🪄", name: "Claude's drawings", images: [] };
-const outlineCategory = { id: "outlines", icon: "✏️", name: "Coloring shapes", images: OUTLINES.map(([name, svg]) => ({ name, svg })) };
-const categories = [...STICKER_CATEGORIES, outlineCategory, claudeCategory];
+const palsCategory = { id: "pals", icon: "⭐", name: "Paint Pals", images: PAINT_PALS };
+const coloringCategory = { id: "coloring", icon: "✏️", name: "Coloring pictures", images: COLORING_PALS };
+const categories = [palsCategory, coloringCategory, ...STICKER_CATEGORIES, claudeCategory];
 
 try {
   claudeCategory.images = JSON.parse(localStorage.getItem("kidspaint.claude") || "[]");
@@ -470,7 +480,7 @@ function renderStickers() {
       img.alt = "";
       b.append(img);
       b.addEventListener("click", async () => {
-        selectSticker(b, { kind: "image", name: item.name, img: await loadImage(img.src) });
+        selectSticker(b, { kind: "image", name: item.name, sound: item.sound, img: await loadImage(img.src) });
       });
       strip.append(b);
     }
@@ -634,7 +644,11 @@ async function openGallery() {
         setTimeout(() => { delete del.dataset.armed; del.textContent = "🗑️"; }, 2500);
         return;
       }
-      await dbDo("pictures", "readwrite", (s) => s.delete(item.id));
+      try {
+        await dbDo("pictures", "readwrite", (s) => s.delete(item.id));
+      } catch {
+        return;
+      }
       sfx("whoosh");
       cell.remove();
       $("#gallery-empty").hidden = grid.children.length > 0;
@@ -662,12 +676,25 @@ $("#btn-new-yes").addEventListener("click", async () => {
   sfx("whoosh");
   scheduleAutosave();
 });
-$("#btn-download").addEventListener("click", () => {
-  const a = document.createElement("a");
-  a.download = `my-picture-${new Date().toISOString().slice(0, 10)}.png`;
-  a.href = composite().toDataURL("image/png");
-  a.click();
+$("#btn-download").addEventListener("click", async () => {
+  const name = `my-picture-${new Date().toISOString().slice(0, 10)}.png`;
   sfx("pop");
+  // On iPad the share sheet offers "Save Image" to Photos, which is what parents expect.
+  const blob = await toBlob(composite());
+  const file = new File([blob], name, { type: "image/png" });
+  if (navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: "My picture" });
+      return;
+    } catch (err) {
+      if (err.name === "AbortError") return;
+    }
+  }
+  const a = document.createElement("a");
+  a.download = name;
+  a.href = URL.createObjectURL(blob);
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10_000);
 });
 $("#btn-print").addEventListener("click", () => {
   const img = $("#print-img");
@@ -709,41 +736,64 @@ function stopHold() {
 parentBtn.addEventListener("pointerdown", startHold);
 parentBtn.addEventListener("pointerup", stopHold);
 parentBtn.addEventListener("pointerleave", stopHold);
+parentBtn.addEventListener("pointercancel", stopHold);
 parentBtn.addEventListener("contextmenu", (e) => e.preventDefault());
 
 function openParent() {
   $("#set-sound").checked = settings.sound;
   $("#set-voice").checked = settings.voice;
   $("#set-claude").checked = settings.claude;
+  $("#set-more").checked = settings.moreTools;
+  $("#set-name").value = settings.kidName;
+  $("#set-code").value = settings.familyCode;
+  $("#set-code-row").hidden = !claudeNeedsCode;
   $("#claude-status").textContent = claudeReady
     ? "✅ Claude is connected."
     : "💤 Claude isn't connected: start the server with ANTHROPIC_API_KEY set (see README).";
   $("#dlg-parent").showModal();
 }
-for (const key of ["sound", "voice", "claude"]) {
-  $(`#set-${key}`).addEventListener("change", (e) => {
+for (const [key, id] of [["sound", "sound"], ["voice", "voice"], ["claude", "claude"], ["moreTools", "more"]]) {
+  $(`#set-${id}`).addEventListener("change", (e) => {
     settings[key] = e.target.checked;
     saveSettings();
     renderSoundButton();
     applyClaudeVisibility();
+    applyAgeMode();
   });
+}
+for (const [key, id] of [["kidName", "name"], ["familyCode", "code"]]) {
+  $(`#set-${id}`).addEventListener("input", (e) => {
+    settings[key] = e.target.value.trim().slice(0, 40);
+    saveSettings();
+  });
+}
+
+// Ages 3-5 (the default) see fewer, bigger buttons. Grown-ups can turn on "More tools".
+function applyAgeMode() {
+  document.body.classList.toggle("simple", !settings.moreTools);
+  if (!settings.moreTools && $(`.tool[data-tool="${state.tool}"]`)?.dataset.advanced !== undefined) setTool("brush");
+  if (!settings.moreTools && state.size === 0) $('.size[data-size="1"]').click();
 }
 
 // ---------- Ask Claude to draw ----------
 let claudeReady = false;
+let claudeNeedsCode = false;
 let lastSvg = null;
 const dlgClaude = $("#dlg-claude");
 const promptInput = $("#claude-prompt");
 const claudeMsg = $("#claude-msg");
 
 function applyClaudeVisibility() {
-  $(".claude-group").hidden = !settings.claude;
+  $("#btn-claude").hidden = !settings.claude;
   renderTabs();
 }
 
 fetch("/api/status")
   .then((r) => r.json())
-  .then((s) => { claudeReady = Boolean(s.claude); })
+  .then((s) => {
+    claudeReady = Boolean(s.claude);
+    claudeNeedsCode = Boolean(s.needsCode);
+  })
   .catch(() => { claudeReady = false; });
 
 function renderIdeas() {
@@ -765,6 +815,9 @@ $("#btn-claude").addEventListener("click", () => {
   $("#claude-result").hidden = true;
   $("#btn-claude-use").hidden = true;
   claudeMsg.textContent = claudeReady ? "" : "Claude is sleeping right now. Ask a grown-up to set it up!";
+  $("#claude-title").textContent = settings.kidName
+    ? `What should Claude draw for ${settings.kidName}?`
+    : "What should Claude draw?";
   dlgClaude.showModal();
   promptInput.focus();
 });
@@ -794,7 +847,7 @@ async function askClaude() {
     const coloring = new FormData($("#claude-form")).get("mode") === "coloring";
     const res = await fetch("/api/draw", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", "X-Family-Code": settings.familyCode },
       body: JSON.stringify({ prompt, coloring }),
     });
     const data = await res.json().catch(() => ({}));
@@ -835,7 +888,8 @@ $("#btn-claude-use").addEventListener("click", async () => {
 // Talking instead of typing: most young kids can't type yet.
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 const micBtn = $("#btn-mic");
-if (!Recognition) micBtn.hidden = true;
+// Safari has no speech input in Home Screen apps, even though the API looks present there.
+if (!Recognition || navigator.standalone) micBtn.hidden = true;
 else {
   micBtn.addEventListener("click", () => {
     const rec = new Recognition();
@@ -859,8 +913,19 @@ function cheer(text) {
   cheerTimer = setTimeout(() => el.classList.remove("show"), 2600);
 }
 
+// ---------- iPad: keep pinch-zoom and double-tap zoom from moving the whole app ----------
+for (const type of ["gesturestart", "gesturechange"]) document.addEventListener(type, (e) => e.preventDefault());
+document.addEventListener("dblclick", (e) => e.preventDefault());
+
+// ---------- installable app (Windows "Install app", iPad "Add to Home Screen"), works offline ----------
+if ("serviceWorker" in navigator && window.isSecureContext) {
+  navigator.serviceWorker.register("sw.js").catch(() => {});
+}
+
 // ---------- start ----------
 setScene("white");
+applyAgeMode();
+if (settings.kidName) setTimeout(() => cheer(`Hi ${settings.kidName}! Let's paint! 🎨`), 600);
 setColor(state.color);
 setTool("brush");
 renderSoundButton();
