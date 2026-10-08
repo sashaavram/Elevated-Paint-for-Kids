@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Elevated Paint for Kids</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><span aria-hidden="true">🎨</span> <b>Elevated Paint</b> <small>for Kids</small></div>
+    <div class="top-actions">
+      <button class="tbtn" id="btn-new" data-say="New picture" aria-label="New picture">🆕</button>
+      <button class="tbtn" id="btn-undo" data-say="Undo" aria-label="Undo">↩️</button>
+      <button class="tbtn" id="btn-redo" data-say="Redo" aria-label="Redo">↪️</button>
+      <button class="tbtn" id="btn-save" data-say="Save to my gallery" aria-label="Save to my gallery">💾</button>
+      <button class="tbtn" id="btn-gallery" data-say="My gallery" aria-label="My gallery">🖼️</button>
+      <button class="tbtn" id="btn-download" data-say="Download picture" aria-label="Download picture">⬇️</button>
+      <button class="tbtn" id="btn-print" data-say="Print" aria-label="Print">🖨️</button>
+      <button class="tbtn" id="btn-sound" data-say="Sounds on or off" aria-label="Sounds on or off">🔊</button>
+      <button class="tbtn" id="btn-parent" data-say="Grown-ups: press and hold" aria-label="Grown-up settings (press and hold)">⚙️</button>
+    </div>
+  </header>
+
+  <nav class="ribbon" aria-label="Painting tools">
+    <section class="group" aria-label="Tools">
+      <div class="grid tools">
+        <button class="tool" data-tool="pencil" data-say="Pencil" aria-label="Pencil">✏️</button>
+        <button class="tool active" data-tool="brush" data-say="Paint brush" aria-label="Paint brush">🖌️</button>
+        <button class="tool" data-tool="crayon" data-say="Crayon" aria-label="Crayon">🖍️</button>
+        <button class="tool" data-tool="spray" data-say="Spray paint" aria-label="Spray paint">💨</button>
+        <button class="tool" data-tool="rainbow" data-say="Rainbow brush" aria-label="Rainbow brush">🌈</button>
+        <button class="tool" data-tool="sparkle" data-say="Sparkle brush" aria-label="Sparkle brush">✨</button>
+        <button class="tool" data-tool="fill" data-say="Paint bucket" aria-label="Paint bucket">🪣</button>
+        <button class="tool" data-tool="eraser" data-say="Eraser" aria-label="Eraser">🧽</button>
+      </div>
+      <h2>Tools</h2>
+    </section>
+
+    <section class="group" aria-label="Size and magic">
+      <div class="sizes">
+        <button class="size" data-size="0" data-say="Small" aria-label="Small"><i style="--d:8px"></i></button>
+        <button class="size active" data-size="1" data-say="Medium" aria-label="Medium"><i style="--d:16px"></i></button>
+        <button class="size" data-size="2" data-say="Big" aria-label="Big"><i style="--d:26px"></i></button>
+        <button class="size" data-size="3" data-say="Giant" aria-label="Giant"><i style="--d:36px"></i></button>
+      </div>
+      <div class="sizes">
+        <button class="toggle" id="btn-mirror" data-say="Mirror magic" aria-label="Mirror magic" aria-pressed="false">🦋</button>
+        <button class="toggle" id="btn-flip" data-say="Flip sticker" aria-label="Flip sticker" aria-pressed="false">🔁</button>
+        <button class="toggle" id="btn-scene" data-say="Pick a background" aria-label="Pick a background">🏞️</button>
+      </div>
+      <h2>Size &amp; magic</h2>
+    </section>
+
+    <section class="group stickers-group" aria-label="Stickers">
+      <div class="cat-tabs" id="cat-tabs" role="tablist"></div>
+      <div class="sticker-strip" id="sticker-strip"></div>
+      <h2>Stickers</h2>
+    </section>
+
+    <section class="group" aria-label="Colors">
+      <div class="colors-wrap">
+        <div class="current-color" id="current-color" aria-hidden="true"></div>
+        <div class="palette" id="palette"></div>
+        <label class="picker" data-say="Mix any color" aria-label="Mix any color">
+          <input type="color" id="color-picker" value="#ff3b30">
+        </label>
+      </div>
+      <h2>Colors</h2>
+    </section>
+
+    <section class="group claude-group" aria-label="Ask Claude">
+      <button class="claude-btn" id="btn-claude" data-say="Ask Claude to draw">
+        <span class="claude-ico" aria-hidden="true">🪄</span>
+        <span>Ask Claude<br>to draw</span>
+      </button>
+      <h2>Claude</h2>
+    </section>
+  </nav>
+
+  <main class="stage" id="stage">
+    <div class="canvas-wrap" id="canvas-wrap">
+      <canvas id="bg-layer" width="1600" height="1000"></canvas>
+      <canvas id="paint-layer" width="1600" height="1000"></canvas>
+      <canvas id="ghost-layer" width="1600" height="1000"></canvas>
+    </div>
+  </main>
+
+  <div class="cheer" id="cheer" aria-live="polite"></div>
+
+  <!-- Ask Claude -->
+  <dialog id="dlg-claude" class="dlg">
+    <form method="dialog" class="dlg-body" id="claude-form">
+      <h2>🪄 What should Claude draw?</h2>
+      <div class="ask-row">
+        <input id="claude-prompt" maxlength="200" autocomplete="off" placeholder="a happy elephant with a red balloon">
+        <button type="button" class="big-ico" id="btn-mic" aria-label="Say it out loud" data-say="Talk to Claude">🎤</button>
+      </div>
+      <div class="ideas" id="claude-ideas"></div>
+      <div class="mode-row" role="radiogroup" aria-label="Picture style">
+        <label><input type="radio" name="mode" value="color" checked> 🎨 Color picture</label>
+        <label><input type="radio" name="mode" value="coloring"> ✏️ Coloring page</label>
+      </div>
+      <div class="claude-result" id="claude-result" hidden>
+        <img id="claude-img" alt="">
+      </div>
+      <p class="claude-msg" id="claude-msg" role="status"></p>
+      <div class="dlg-actions">
+        <button type="button" class="pill" id="btn-claude-cancel" aria-label="Close">✖ Close</button>
+        <button type="button" class="pill go" id="btn-claude-go">✨ Draw it!</button>
+        <button type="button" class="pill use" id="btn-claude-use" hidden>👍 Put it on my picture</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Backgrounds -->
+  <dialog id="dlg-scene" class="dlg">
+    <div class="dlg-body">
+      <h2>🏞️ Pick a background</h2>
+      <div class="scene-grid" id="scene-grid"></div>
+      <div class="dlg-actions"><button class="pill" data-close>✖ Close</button></div>
+    </div>
+  </dialog>
+
+  <!-- Start over -->
+  <dialog id="dlg-new" class="dlg small">
+    <div class="dlg-body">
+      <h2>Start a new picture?</h2>
+      <p>Your picture will be saved in your gallery first.</p>
+      <div class="dlg-actions">
+        <button class="pill" data-close aria-label="No, keep drawing">✖ No</button>
+        <button class="pill go" id="btn-new-yes" aria-label="Yes, new picture">✔ Yes</button>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Gallery -->
+  <dialog id="dlg-gallery" class="dlg">
+    <div class="dlg-body">
+      <h2>🖼️ My gallery</h2>
+      <div class="gallery-grid" id="gallery-grid"></div>
+      <p class="empty" id="gallery-empty">No pictures yet. Press 💾 to save one!</p>
+      <div class="dlg-actions"><button class="pill" data-close>✖ Close</button></div>
+    </div>
+  </dialog>
+
+  <!-- Grown-up settings -->
+  <dialog id="dlg-parent" class="dlg small">
+    <div class="dlg-body">
+      <h2>⚙️ Grown-up settings</h2>
+      <label class="setting"><input type="checkbox" id="set-sound"> Sound effects</label>
+      <label class="setting"><input type="checkbox" id="set-voice"> Read buttons and stickers out loud</label>
+      <label class="setting"><input type="checkbox" id="set-claude"> Show "Ask Claude to draw"</label>
+      <p class="note" id="claude-status"></p>
+      <p class="note">Drawings are kept only in this browser. Claude requests send just the typed or spoken idea to Anthropic's API, through your own server.</p>
+      <div class="dlg-actions"><button class="pill go" data-close>Done</button></div>
+    </div>
+  </dialog>
+
+  <div id="print-area" aria-hidden="true"><img id="print-img" alt=""></div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
