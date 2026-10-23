@@ -4,8 +4,10 @@ import { buildIndex, parseRequest, layoutScene, describe, MAGIC_IDEAS } from "./
 import { floodFill } from "./fill.js";
 import { SCENES, drawScene } from "./scenes.js";
 
-const W = 1600;
-const H = 1000;
+// The paper is 1600x1000, or 1000x1600 when the screen is taller than wide.
+// A picture keeps its shape even if the device is turned later.
+let W = 1600;
+let H = 1000;
 const BRUSH_SIZES = [6, 14, 28, 48];
 const STICKER_SIZES = [90, 170, 260, 380];
 const MAX_UNDO = 10; // each step keeps a full copy of the picture; iPad Safari has tight memory
@@ -29,6 +31,38 @@ const IDEAS = [
 
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => [...document.querySelectorAll(sel)];
+
+// ---------- reliable taps on touch screens ----------
+// After drawing with a finger, some browsers drop the "click" from the next tap,
+// so a button needed two taps. Buttons react when the finger lifts instead, unless
+// the finger moved (that's a scroll of a sticker strip, not a tap).
+{
+  let down = null;
+  let suppressUntil = 0;
+  document.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse") return;
+    const button = e.target.closest("button");
+    down = button && !button.disabled ? { button, x: e.clientX, y: e.clientY } : null;
+  }, true);
+  document.addEventListener("pointercancel", () => { down = null; }, true);
+  document.addEventListener("pointerup", (e) => {
+    if (!down || e.pointerType === "mouse") return;
+    const { button, x, y } = down;
+    down = null;
+    if (e.target.closest("button") !== button || Math.hypot(e.clientX - x, e.clientY - y) > 12) return;
+    suppressUntil = Date.now() + 500;
+    button.click();
+  }, true);
+  // Swallow the browser's own click that may follow, so nothing happens twice. It can
+  // land on a pop-up that the tap just opened, so it's ignored wherever it lands.
+  document.addEventListener("click", (e) => {
+    if (e.isTrusted && Date.now() < suppressUntil) {
+      e.stopPropagation();
+      e.preventDefault();
+      suppressUntil = 0;
+    }
+  }, true);
+}
 
 // ---------- settings (kept per browser) ----------
 const settings = { sound: true, voice: true, claude: true, moreTools: false, kidName: "" };
@@ -110,6 +144,24 @@ function composite() {
   return flat;
 }
 
+function setCanvasSize(w, h) {
+  if (w === W && h === H) return;
+  W = w;
+  H = h;
+  for (const c of [bgCanvas, paintCanvas, ghostCanvas, flat]) {
+    c.width = w;
+    c.height = h;
+  }
+  wrap.style.setProperty("--ar", String(w / h));
+  drawScene(bg, state.scene, W, H);
+}
+
+// Upright paper when the space for the picture is clearly taller than wide.
+function shapeForScreen() {
+  const r = $("#stage").getBoundingClientRect();
+  return r.height > r.width * 1.15 ? [1000, 1600] : [1600, 1000];
+}
+
 function setScene(id) {
   state.scene = id;
   drawScene(bg, id, W, H);
@@ -122,6 +174,7 @@ function snapshot() {
   return { paint: paint.getImageData(0, 0, W, H), scene: state.scene };
 }
 function restore(snap) {
+  setCanvasSize(snap.paint.width, snap.paint.height);
   paint.putImageData(snap.paint, 0, 0);
   if (snap.scene !== state.scene) setScene(snap.scene);
 }
@@ -594,6 +647,7 @@ async function loadLayer(blob, scene) {
   const url = URL.createObjectURL(blob);
   try {
     const img = await loadImage(url);
+    setCanvasSize(img.naturalWidth || W, img.naturalHeight || H);
     paint.clearRect(0, 0, W, H);
     paint.drawImage(img, 0, 0);
     setScene(scene || "white");
@@ -668,6 +722,7 @@ $("#btn-gallery").addEventListener("click", openGallery);
 $("#btn-new").addEventListener("click", () => $("#dlg-new").showModal());
 $("#btn-new-yes").addEventListener("click", async () => {
   await saveToGallery({ quiet: true });
+  setCanvasSize(...shapeForScreen());
   paint.clearRect(0, 0, W, H);
   setScene("white");
   undoStack.length = 0;
@@ -1065,6 +1120,7 @@ if ("serviceWorker" in navigator && window.isSecureContext) {
 
 // ---------- start ----------
 setScene("white");
+setCanvasSize(...shapeForScreen());
 applyAgeMode();
 if (settings.kidName) setTimeout(() => cheer(`Hi ${settings.kidName}! Let's paint! 🎨`), 600);
 setColor(state.color);

@@ -147,7 +147,9 @@ export function layoutScene(items, w, h) {
   const placed = all.slice(0, MAX_ITEMS);
   const sky = placed.filter((e) => SKY.has(e.name.toLowerCase()));
   const ground = placed.filter((e) => !SKY.has(e.name.toLowerCase()));
-  const sizeFor = (n) => Math.round(h * (n <= 1 ? 0.5 : n === 2 ? 0.4 : n <= 4 ? 0.3 : 0.24));
+  // Sized from the short side of the paper, and never wider than each one's share of the row.
+  const base = Math.min(w, h);
+  const sizeFor = (n) => Math.round(Math.min(base * (n <= 1 ? 0.5 : n === 2 ? 0.4 : n <= 4 ? 0.3 : 0.24), (w / n) * 0.95));
   const out = [];
   const row = (list, yFrac, scale) => {
     const size = Math.round(sizeFor(list.length) * scale);

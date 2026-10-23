@@ -36,7 +36,9 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 /* ribbon */
 .ribbon { display: flex; gap: 6px; padding: 8px 10px 4px; background: var(--ribbon); border-bottom: 2px solid var(--line); overflow-x: auto; flex: none; }
 .group { display: flex; flex-direction: column; align-items: center; padding: 0 8px; border-right: 2px solid var(--line); flex: none; }
-.group:last-child { border-right: none; }
+.rail-b .group:last-child { border-right: none; }
+/* On big screens the two rails are invisible and the groups sit in one ribbon row. */
+.rail { display: contents; }
 .group h2 { margin: 4px 0 0; font-size: 13px; font-weight: normal; color: var(--muted); }
 .grid.tools { display: grid; grid-template-columns: repeat(4, var(--btn)); gap: 6px; }
 .tool, .size, .toggle { width: var(--btn); height: var(--btn); border-radius: 14px; font-size: 28px; font-family: var(--emoji); background: #f6f2ff; border: 3px solid transparent; transition: transform .1s; }
@@ -78,7 +80,7 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 
 /* canvas */
 .stage { flex: 1; min-height: 0; display: grid; place-items: center; padding: 12px; container-type: size; }
-.canvas-wrap { position: relative; aspect-ratio: 16 / 10; width: min(100cqw, 160cqh); border-radius: 12px; box-shadow: 0 4px 18px rgba(80, 50, 0, .15); background: #fff; overflow: hidden; touch-action: none; }
+.canvas-wrap { position: relative; aspect-ratio: var(--ar, 1.6); width: min(100cqw, calc(100cqh * var(--ar, 1.6))); border-radius: 12px; box-shadow: 0 4px 18px rgba(80, 50, 0, .15); background: #fff; overflow: hidden; touch-action: none; }
 .canvas-wrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
 #ghost-layer { pointer-events: none; }
 .canvas-wrap[data-tool="fill"] { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%AA%A3%3C/text%3E%3C/svg%3E") 4 28, crosshair; }
@@ -137,7 +139,6 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 
 @media (max-width: 1000px) {
   .ribbon { flex-wrap: wrap; row-gap: 8px; }
-  .group:nth-child(3) { border-right: none; }
   .stickers-group { flex: 1 1 290px; max-width: none; }
 }
 @media (max-width: 900px) {
@@ -194,4 +195,67 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 }
 @media (max-width: 600px) {
   .magic-ideas { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- phones ---------- */
+/* Shared: compact top bar on one line, no group labels, rails that scroll inside themselves. */
+@media (max-width: 600px), (max-height: 520px) {
+  :root { --btn: 48px; }
+  .simple { --btn: 48px; }
+  .topbar { padding: 4px 8px; gap: 6px; }
+  .brand { display: none; }
+  .claude-btn { height: 42px; padding: 0 10px 0 6px; font-size: 15px; }
+  .claude-ico { font-size: 22px; }
+  .claude-btn .long { display: none; }
+  .tbtn { width: 40px; height: 40px; font-size: 20px; border-radius: 12px; }
+  .top-actions { gap: 4px; }
+  .group h2 { display: none; }
+  .group { border: none; padding: 0; }
+  .stage { padding: 6px; }
+  .tool, .simple .tool { font-size: 26px; }
+  .size, .toggle, .simple .size, .simple .toggle { width: 44px; height: 44px; font-size: 22px; }
+  .current-color { width: 40px; height: 40px; border-width: 3px; }
+  .palette, .simple .palette { gap: 5px; }
+  .swatch, .simple .swatch { width: 34px; height: 34px; }
+  .picker { width: 36px; height: 36px; }
+  .cat-tab, .simple .cat-tab { width: 40px; height: 40px; font-size: 22px; }
+  .sticker, .simple .sticker { width: 54px; height: 54px; font-size: 32px; }
+  .sticker img, .simple .sticker img { width: 44px; height: 44px; }
+  .sticker-strip, .simple .sticker-strip { height: 58px; }
+  .stickers-group { min-width: 0; max-width: none; }
+}
+
+/* Upright phone: top bar, picture, then a tool dock along the bottom. */
+@media (max-width: 600px) and (min-height: 521px) {
+  .stage { order: 2; }
+  .ribbon { order: 3; flex-direction: column; flex-wrap: nowrap; gap: 6px; padding: 6px 8px; border-bottom: none; border-top: 2px solid var(--line); overflow: visible; }
+  .rail { display: flex; gap: 10px; align-items: center; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+  .rail-b { flex-direction: column; align-items: stretch; gap: 6px; }
+  .rail-b .group { flex: none; }
+  .stage { flex: 1 1 0; }
+  .rail-a .group { flex-direction: row; gap: 6px; flex: none; }
+  .grid.tools, .simple .grid.tools { grid-template-columns: none; grid-auto-flow: column; gap: 6px; }
+  .sizes { margin: 0; }
+  .colors-wrap { overflow-x: auto; }
+  .palette, .simple .palette { display: flex; }
+  .swatch { flex: none; }
+}
+
+/* Sideways phone: tools on the left, colors and stickers on the right, picture in between. */
+@media (max-height: 520px) and (min-width: 601px) {
+  body { display: grid; grid-template: "top top top" auto "a stage b" minmax(0, 1fr) / clamp(112px, 20vw, 190px) minmax(0, 1fr) clamp(120px, 22vw, 210px); }
+  .topbar { grid-area: top; }
+  .ribbon { display: contents; }
+  .rail { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; overflow-x: hidden; padding: 6px; background: var(--ribbon); min-height: 0; -webkit-overflow-scrolling: touch; }
+  .rail-a { grid-area: a; border-right: 2px solid var(--line); }
+  .rail-b { grid-area: b; border-left: 2px solid var(--line); }
+  .stage { grid-area: stage; min-height: 0; }
+  .group { align-items: stretch; }
+  .grid.tools, .simple .grid.tools { grid-template-columns: repeat(auto-fill, 48px); justify-content: center; }
+  .sizes { flex-wrap: wrap; justify-content: center; margin: 0; }
+  .colors-wrap { flex-direction: column; }
+  .palette, .simple .palette { grid-template-columns: repeat(auto-fill, 34px); justify-content: center; width: 100%; }
+  .stickers-group { order: 2; width: 100%; }
+  .cat-tabs { flex-wrap: wrap; justify-content: center; overflow: visible; }
+  .sticker-strip, .simple .sticker-strip { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, 54px); height: auto; gap: 4px; }
 }
