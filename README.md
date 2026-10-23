@@ -22,6 +22,16 @@ A paint app for 3–5 year olds, laid out like Windows Paint. It runs in the bro
 
 GitHub publishes the app here automatically every time the code changes (`.github/workflows/pages.yml`). Everything works there, including the Magic Pencil, **except "Ask Claude to draw"**: GitHub Pages can only show files, so it can't keep a Claude key secret or check the passcode, and the Claude button hides itself. To add Claude drawing, use the Render setup below and open the Render link instead.
 
+### Using it offline (on a plane)
+
+Everything except "Ask Claude to draw" works with no internet: painting, stickers, Magic Pencil, backgrounds, saving and the gallery. Before the flight:
+
+1. With internet, open the link and use it for a moment, so the newest version is saved on the device.
+2. On iPhone or iPad, use **Share → Add to Home Screen** and open the app from that icon. Safari can clear saved website data for sites you haven't opened in about a week of Safari use; Home Screen apps are exempt ([WebKit's storage policy, as reported](https://adactio.com/journal/16619)).
+3. On the plane, open it from the Home Screen icon. If the plane's Wi-Fi is on but has no internet, the app waits at most 3 seconds before using its saved copy.
+
+The 🎤 button needs internet, so type or tap the picture ideas instead.
+
 ## Use it on an iPad with Claude drawing (Render)
 
 The iPad only needs a link, but something has to run the small server that keeps your Claude key private. The easiest host is [Render](https://render.com):
