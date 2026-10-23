@@ -141,7 +141,15 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 .gallery-item { position: relative; border-radius: 14px; overflow: hidden; border: 3px solid var(--line); aspect-ratio: 16/10; background: #fff; }
 .gallery-item > button.open { padding: 0; width: 100%; height: 100%; }
 .gallery-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.gallery-item .del { position: absolute; top: 4px; right: 4px; width: 34px; height: 34px; border-radius: 50%; background: #fff; font-family: var(--emoji); box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+.gallery-item .del { position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; border-radius: 50%; background: #fff; color: #c2410c; display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0,0,0,.25); }
+.gallery-item svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+.del-ask { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: rgba(43, 33, 64, .78); color: #fff; text-align: center; padding: 6px; }
+.del-ask p { margin: 0; font-size: 15px; font-weight: bold; }
+.del-ask div { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+.del-ask button { min-height: 40px; padding: 0 12px; border-radius: 999px; font-size: 15px; display: flex; align-items: center; gap: 4px; }
+.del-ask .keep { background: #fff; color: var(--ink); }
+.del-ask .yes { background: #e5484d; color: #fff; }
+.del-ask .yes svg { width: 18px; height: 18px; }
 .empty { color: var(--muted); text-align: center; }
 .setting { display: flex; gap: 10px; align-items: center; font-size: 18px; }
 .setting input { transform: scale(1.5); }
@@ -292,3 +300,10 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 /* Keep Redo next to Undo when every button shows in one row. */
 #btn-new { order: 1; } #btn-undo { order: 2; } #btn-redo { order: 3; } #btn-save { order: 4; } #btn-gallery { order: 5; }
 #btn-download { order: 6; } #btn-print { order: 7; } #btn-sound { order: 8; } #btn-parent { order: 9; } #btn-more { order: 10; }
+
+@media (max-width: 600px) {
+  .gallery-grid { grid-template-columns: 1fr; }
+}
+/* Pop-ups are in the browser's top layer: stop quick taps from selecting their text. */
+.dlg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.dlg input { -webkit-user-select: text; user-select: text; }

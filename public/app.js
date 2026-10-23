@@ -686,29 +686,42 @@ async function openGallery() {
       sfx("pop");
       scheduleAutosave();
     });
+    // Bin button, then a separate "Throw away?" choice over the picture. Two different
+    // buttons, so a stray tap or a quick double-tap can't delete a masterpiece.
     const del = document.createElement("button");
     del.className = "del";
-    del.textContent = "🗑️";
-    del.setAttribute("aria-label", "Delete this picture");
-    del.addEventListener("click", async () => {
-      if (!del.dataset.armed) {
-        // two taps to delete, so a stray tap can't throw away a masterpiece
-        del.dataset.armed = "1";
-        del.textContent = "❓";
-        say("Tap again to throw it away");
-        setTimeout(() => { delete del.dataset.armed; del.textContent = "🗑️"; }, 2500);
-        return;
-      }
+    del.innerHTML = '<svg aria-hidden="true"><use href="#i-trash"/></svg>';
+    del.setAttribute("aria-label", "Throw this picture away");
+    const ask = document.createElement("div");
+    ask.className = "del-ask";
+    ask.hidden = true;
+    ask.innerHTML =
+      '<p>Throw away?</p>' +
+      '<div><button type="button" class="keep">Keep</button>' +
+      '<button type="button" class="yes"><svg aria-hidden="true"><use href="#i-trash"/></svg>Delete</button></div>';
+    del.addEventListener("click", () => {
+      ask.hidden = false;
+      del.hidden = true;
+      say("Throw this picture away?");
+    });
+    ask.querySelector(".keep").addEventListener("click", () => {
+      ask.hidden = true;
+      del.hidden = false;
+    });
+    ask.querySelector(".yes").addEventListener("click", async () => {
       try {
         await dbDo("pictures", "readwrite", (s) => s.delete(item.id));
-      } catch {
+      } catch (err) {
+        console.error("Couldn't delete picture", err);
+        ask.querySelector("p").textContent = "Couldn't delete. Try again.";
         return;
       }
       sfx("whoosh");
+      URL.revokeObjectURL(img.src);
       cell.remove();
       $("#gallery-empty").hidden = grid.children.length > 0;
     });
-    cell.append(open, del);
+    cell.append(open, del, ask);
     grid.append(cell);
   }
   $("#dlg-gallery").showModal();
