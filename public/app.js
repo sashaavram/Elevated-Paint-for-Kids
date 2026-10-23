@@ -1,5 +1,6 @@
 import { STICKER_CATEGORIES } from "./stamps.js";
 import { PAINT_PALS, COLORING_PALS } from "./art.js";
+import { buildIndex, parseRequest, layoutScene, describe, MAGIC_IDEAS } from "./magic.js";
 import { floodFill } from "./fill.js";
 import { SCENES, drawScene } from "./scenes.js";
 
@@ -258,8 +259,7 @@ function drawSegment(x0, y0, x1, y1) {
 }
 
 // ---------- stickers ----------
-function drawSticker(ctx, sticker, x, y, flipped) {
-  const size = STICKER_SIZES[state.size];
+function drawSticker(ctx, sticker, x, y, flipped, size = STICKER_SIZES[state.size]) {
   ctx.save();
   ctx.translate(x, y);
   if (flipped) ctx.scale(-1, 1);
@@ -937,21 +937,112 @@ $("#btn-claude-use").addEventListener("click", async () => {
 
 // Talking instead of typing: most young kids can't type yet.
 const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-const micBtn = $("#btn-mic");
-// Safari has no speech input in Home Screen apps, even though the API looks present there.
-if (!Recognition || navigator.standalone) micBtn.hidden = true;
-else {
-  micBtn.addEventListener("click", () => {
+function attachMic(button, input, onDone) {
+  // Safari has no speech input in Home Screen apps, even though the API looks present there.
+  if (!Recognition || navigator.standalone) {
+    button.hidden = true;
+    return;
+  }
+  button.addEventListener("click", () => {
     const rec = new Recognition();
     rec.lang = navigator.language || "en-US";
     rec.interimResults = true;
-    micBtn.classList.add("listening");
-    rec.onresult = (e) => { promptInput.value = [...e.results].map((r) => r[0].transcript).join(" "); };
-    rec.onend = () => micBtn.classList.remove("listening");
-    rec.onerror = () => micBtn.classList.remove("listening");
+    button.classList.add("listening");
+    let heard = false;
+    rec.onresult = (e) => {
+      input.value = [...e.results].map((r) => r[0].transcript).join(" ");
+      heard = e.results[e.results.length - 1].isFinal || heard;
+    };
+    rec.onend = () => {
+      button.classList.remove("listening");
+      if (heard && input.value.trim()) onDone?.();
+    };
+    rec.onerror = () => button.classList.remove("listening");
     rec.start();
   });
 }
+attachMic($("#btn-mic"), promptInput);
+
+// ---------- Magic Pencil: words -> a picture made of the app's own stickers ----------
+const magicIndex = buildIndex();
+const dlgMagic = $("#dlg-magic");
+const magicInput = $("#magic-prompt");
+const magicMsg = $("#magic-msg");
+const magicImages = new Map();
+let magicBusy = false;
+
+function renderMagicIdeas() {
+  const box = $("#magic-ideas");
+  box.textContent = "";
+  for (const [icon, idea] of [...MAGIC_IDEAS].sort(() => Math.random() - 0.5).slice(0, 6)) {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "magic-idea";
+    b.innerHTML = `<b aria-hidden="true"></b><span></span>`;
+    b.firstChild.textContent = icon;
+    b.lastChild.textContent = idea;
+    b.addEventListener("click", () => {
+      magicInput.value = idea;
+      runMagic(idea);
+    });
+    box.append(b);
+  }
+}
+
+async function magicSticker(entry, coloring) {
+  if (entry.kind !== "image") return { kind: "emoji", value: entry.value };
+  const svg = coloring && entry.coloringSvg ? entry.coloringSvg : entry.svg;
+  if (!magicImages.has(svg)) magicImages.set(svg, await loadImage(svgUrl(svg)));
+  return { kind: "image", img: magicImages.get(svg) };
+}
+
+async function runMagic(text) {
+  if (magicBusy) return;
+  const parsed = parseRequest(text, magicIndex);
+  if (!parsed.items.length && !parsed.scene) {
+    const word = parsed.unknown[0];
+    magicMsg.textContent = word
+      ? `I don't know how to draw "${word}" yet. Try a lion, a house or a car!`
+      : "Tell me what to draw! Tap a picture above.";
+    say(word ? `I don't know how to draw ${word} yet. Try a lion, a house, or a car!` : "Tell me what to draw!");
+    return;
+  }
+  magicBusy = true;
+  dlgMagic.close();
+  try {
+    pushUndo();
+    if (parsed.scene) setScene(parsed.scene);
+    else if (parsed.coloring) setScene("white");
+    if (parsed.color) setColor(parsed.color);
+    sfx("magic");
+    const sentence = describe(parsed);
+    say("Ta da! " + sentence);
+    // Pop the stickers in one by one, it's more fun to watch.
+    for (const spot of layoutScene(parsed.items, W, H)) {
+      const sticker = await magicSticker(spot.entry, parsed.coloring);
+      drawSticker(paint, sticker, spot.x, spot.y, spot.flip, spot.size);
+      sfx("pop");
+      await new Promise((r) => setTimeout(r, 260));
+    }
+    cheer(sentence + (parsed.coloring ? " Now color it in! 🪣" : " ✨"));
+    if (parsed.coloring) setTool("fill");
+    scheduleAutosave();
+  } finally {
+    magicBusy = false;
+  }
+}
+
+$("#btn-magic").addEventListener("click", () => {
+  renderMagicIdeas();
+  magicMsg.textContent = "";
+  magicInput.value = "";
+  dlgMagic.showModal();
+});
+$("#btn-magic-cancel").addEventListener("click", () => dlgMagic.close());
+$("#btn-magic-go").addEventListener("click", () => runMagic(magicInput.value));
+$("#magic-form").addEventListener("submit", (e) => { e.preventDefault(); runMagic(magicInput.value); });
+magicInput.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); runMagic(magicInput.value); } });
+attachMic($("#btn-magic-mic"), magicInput, () => runMagic(magicInput.value));
 
 // ---------- little helpers ----------
 let cheerTimer;

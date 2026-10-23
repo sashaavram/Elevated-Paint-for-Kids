@@ -1,8 +1,8 @@
 // Keeps the app working without internet (everything except "Ask Claude to draw").
 // Shows the saved copy right away and quietly fetches a fresh one for next time.
-const CACHE = "kidspaint-v3";
+const CACHE = "kidspaint-v4";
 const FILES = [
-  "./", "index.html", "styles.css", "app.js", "stamps.js", "art.js", "fill.js", "scenes.js",
+  "./", "index.html", "styles.css", "app.js", "stamps.js", "art.js", "magic.js", "fill.js", "scenes.js",
   "manifest.webmanifest", "icon.svg", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
 ];
 

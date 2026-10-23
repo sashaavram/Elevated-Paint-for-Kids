@@ -17,9 +17,14 @@
 <body>
   <header class="topbar">
     <div class="brand"><span aria-hidden="true">🎨</span> <b>Elevated Paint</b> <small>for Kids</small></div>
-    <button class="claude-btn" id="btn-claude" data-say="Ask Claude to draw">
-      <span class="claude-ico" aria-hidden="true">🪄</span><span>Ask Claude to draw</span>
-    </button>
+    <div class="top-magic">
+      <button class="claude-btn magic-btn" id="btn-magic" data-say="Magic Pencil">
+        <span class="claude-ico" aria-hidden="true">✨</span><span>Magic<span class="long"> Pencil</span></span>
+      </button>
+      <button class="claude-btn" id="btn-claude" data-say="Ask Claude to draw" hidden>
+        <span class="claude-ico" aria-hidden="true">🪄</span><span><span class="long">Ask </span>Claude</span>
+      </button>
+    </div>
     <div class="top-actions">
       <button class="tbtn" id="btn-new" data-say="New picture" aria-label="New picture">🆕</button>
       <button class="tbtn" id="btn-undo" data-say="Undo" aria-label="Undo">↩️</button>
@@ -92,13 +97,31 @@
 
   <div class="cheer" id="cheer" aria-live="polite"></div>
 
+  <!-- Magic Pencil: builds a picture from the app's own stickers -->
+  <dialog id="dlg-magic" class="dlg">
+    <form method="dialog" class="dlg-body" id="magic-form">
+      <h2>✨ Magic Pencil</h2>
+      <p class="note">Tap a picture, or say or type what to draw.</p>
+      <div class="magic-ideas" id="magic-ideas"></div>
+      <div class="ask-row">
+        <input id="magic-prompt" maxlength="120" autocomplete="off" placeholder="two cats and a rainbow">
+        <button type="button" class="big-ico mic" id="btn-magic-mic" aria-label="Say it out loud" data-say="Tell me what to draw">🎤</button>
+      </div>
+      <p class="claude-msg" id="magic-msg" role="status"></p>
+      <div class="dlg-actions">
+        <button type="button" class="pill" id="btn-magic-cancel">✖ Close</button>
+        <button type="button" class="pill go" id="btn-magic-go">✨ Draw it!</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Ask Claude -->
   <dialog id="dlg-claude" class="dlg">
     <form method="dialog" class="dlg-body" id="claude-form">
       <h2>🪄 <span id="claude-title">What should Claude draw?</span></h2>
       <div class="ask-row">
         <input id="claude-prompt" maxlength="200" autocomplete="off" placeholder="a happy elephant with a red balloon">
-        <button type="button" class="big-ico" id="btn-mic" aria-label="Say it out loud" data-say="Talk to Claude">🎤</button>
+        <button type="button" class="big-ico mic" id="btn-mic" aria-label="Say it out loud" data-say="Talk to Claude">🎤</button>
       </div>
       <div class="ideas" id="claude-ideas"></div>
       <div class="mode-row" role="radiogroup" aria-label="Picture style">

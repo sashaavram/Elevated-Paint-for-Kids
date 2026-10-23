@@ -11,6 +11,7 @@ A paint app for 3–5 year olds, laid out like Windows Paint. It runs in the bro
 - **Talks.** Buttons and stickers say their names and sounds ("Lion! Roar!"). If you add your child's name in settings, the app greets them.
 - **Hard to break.** One-tap undo, autosave, "start over?" saves to the gallery first, deleting a gallery picture takes two taps, and pinch-zoom can't move the app.
 - **Magic.** Rainbow and sparkle brushes, 🦋 mirror painting, 🏞️ 8 backgrounds.
+- **✨ Magic Pencil (free, no AI, works offline).** Your child taps a picture idea, talks (🎤) or types, for example "three ducks on the farm", "a lion in the jungle" or "a dinosaur coloring page". The app builds the picture from its own stickers: it picks the background, counts up to 8 things, puts the sun and planes in the sky, and says the result out loud. It understands kid words like kitty, doggy, dino and fire engine. One tap of undo removes the whole picture.
 - **🪄 Ask Claude to draw.** Type, tap an idea, or talk (🎤 in Safari or Edge). Choose a color picture or a coloring page, then tap to place it.
 - **Grown-up passcode on every Claude drawing.** A number keypad appears each time, so kids can't spend Claude credit alone. Five wrong tries lock drawing for 15 minutes.
 - **Grown-up settings.** Press and **hold ⚙️ for 2 seconds**: sounds, voice, Claude on/off, more tools, child's name.
@@ -19,7 +20,7 @@ A paint app for 3–5 year olds, laid out like Windows Paint. It runs in the bro
 
 **https://sashaavram.github.io/Elevated-Paint-for-Kids/**
 
-GitHub publishes the app here automatically every time the code changes (`.github/workflows/pages.yml`). Everything works there **except "Ask Claude to draw"**: GitHub Pages can only show files, so it can't keep a Claude key secret or check the passcode, and the Claude button hides itself. To add Claude drawing, use the Render setup below and open the Render link instead.
+GitHub publishes the app here automatically every time the code changes (`.github/workflows/pages.yml`). Everything works there, including the Magic Pencil, **except "Ask Claude to draw"**: GitHub Pages can only show files, so it can't keep a Claude key secret or check the passcode, and the Claude button hides itself. To add Claude drawing, use the Render setup below and open the Render link instead.
 
 ## Use it on an iPad with Claude drawing (Render)
 
@@ -63,7 +64,7 @@ The browser sends only the child's short idea (200 characters max) to `POST /api
 npm test     # SVG cleaning, paint bucket, passcode and server tests
 ```
 
-Files: `server.js` (static files, API, spending guards), `lib/draw.js` (Claude call), `lib/svg.js` (SVG cleaning), `public/` (the app: `app.js`, `art.js` Paint Pals, `stamps.js` emoji, `fill.js`, `scenes.js`, `sw.js` offline cache, `styles.css`).
+Files: `server.js` (static files, API, spending guards), `lib/draw.js` (Claude call), `lib/svg.js` (SVG cleaning), `public/` (the app: `app.js`, `art.js` Paint Pals, `stamps.js` emoji, `magic.js` Magic Pencil, `fill.js`, `scenes.js`, `sw.js` offline cache, `styles.css`).
 
 ## Research behind the kid features
 
