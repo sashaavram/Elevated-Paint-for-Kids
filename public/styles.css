@@ -24,14 +24,31 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 
 /* top bar */
 .topbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 16px; background: var(--accent); }
-.brand { font-size: 20px; white-space: nowrap; }
+.brand { font-size: 20px; white-space: nowrap; display: flex; align-items: center; gap: 8px; }
+.brand img { border-radius: 10px; flex: none; }
 .brand small { color: var(--accent-ink); }
 .top-actions { display: flex; gap: 6px; overflow-x: auto; }
-.tbtn { width: 46px; height: 46px; border-radius: 14px; font-size: 24px; font-family: var(--emoji); background: rgba(255,255,255,.55); transition: transform .1s; flex: none; }
+/* Top bar buttons: raised toy-like tiles with a drawn icon in each button's own color. */
+.tbtn { width: 46px; height: 46px; border-radius: 15px; background: #fffdf6; color: var(--ico, var(--ink)); flex: none; display: grid; place-items: center; box-shadow: 0 3px 0 rgba(122, 82, 0, .28), 0 4px 10px rgba(122, 82, 0, .12); transition: transform .08s, box-shadow .08s; }
+.tbtn svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
 .tbtn:hover { background: #fff; }
-.tbtn:active { transform: scale(.9); }
-.tbtn:disabled { opacity: .35; }
-.tbtn.holding { background: #fff; box-shadow: inset 0 -4px 0 var(--active); }
+.tbtn:active { transform: translateY(3px); box-shadow: 0 0 0 rgba(122, 82, 0, .28); }
+.tbtn:disabled { opacity: .45; box-shadow: none; background: rgba(255, 255, 255, .5); }
+.t-new { --ico: #e8574a; }
+.t-undo { --ico: #2f6fe0; }
+.t-save { --ico: #e0367a; }
+.t-gallery { --ico: #7a4fd6; }
+.t-download { --ico: #0f9488; }
+.t-print { --ico: #4b5568; }
+.t-sound { --ico: #e07b00; }
+.t-grown { --ico: #5b5470; }
+.t-more { --ico: #5b5470; display: none; }
+.top-extra { display: contents; }
+.pill-ico { width: 26px; height: 26px; flex: none; fill: none; stroke: currentColor; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+.magic-btn { color: #4b3bb8; }
+.magic-btn > span, .claude-btn > span { color: var(--ink); }
+#btn-claude { color: var(--claude); }
+.tbtn.holding { background: #fff; box-shadow: 0 0 0 4px var(--active); }
 
 /* ribbon */
 .ribbon { display: flex; gap: 6px; padding: 8px 10px 4px; background: var(--ribbon); border-bottom: 2px solid var(--line); overflow-x: auto; flex: none; }
@@ -188,7 +205,7 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 .magic-idea:active { transform: scale(.96); }
 @media (max-width: 1100px) {
   .brand b, .brand small { display: none; }
-  .tbtn { width: 44px; height: 44px; font-size: 22px; }
+  .tbtn { width: 44px; height: 44px; }
 }
 @media (max-width: 900px) {
   .claude-btn .long { display: none; }
@@ -205,9 +222,10 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
   .topbar { padding: 4px 8px; gap: 6px; }
   .brand { display: none; }
   .claude-btn { height: 42px; padding: 0 10px 0 6px; font-size: 15px; }
-  .claude-ico { font-size: 22px; }
   .claude-btn .long { display: none; }
-  .tbtn { width: 40px; height: 40px; font-size: 20px; border-radius: 12px; }
+  .tbtn { width: 42px; height: 42px; border-radius: 13px; }
+  .tbtn svg { width: 24px; height: 24px; }
+  .pill-ico { width: 22px; height: 22px; }
   .top-actions { gap: 4px; }
   .group h2 { display: none; }
   .group { border: none; padding: 0; }
@@ -230,8 +248,11 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
   .stage { order: 2; }
   .ribbon { order: 3; flex-direction: column; flex-wrap: nowrap; gap: 6px; padding: 6px 8px; border-bottom: none; border-top: 2px solid var(--line); overflow: visible; }
   .rail { display: flex; gap: 10px; align-items: center; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
-  .rail-b { flex-direction: column; align-items: stretch; gap: 6px; }
-  .rail-b .group { flex: none; }
+  .rail-b { flex-direction: column; align-items: stretch; gap: 6px; overflow: hidden; }
+  /* Sticker tabs, stickers and colors each scroll sideways on their own. */
+  .rail-b .group { flex: none; width: 100%; min-width: 0; }
+  .cat-tabs, .sticker-strip, .colors-wrap { width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+  .colors-wrap { justify-content: flex-start; }
   .stage { flex: 1 1 0; }
   .rail-a .group { flex-direction: row; gap: 6px; flex: none; }
   .grid.tools, .simple .grid.tools { grid-template-columns: none; grid-auto-flow: column; gap: 6px; }
@@ -259,3 +280,15 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
   .cat-tabs { flex-wrap: wrap; justify-content: center; overflow: visible; }
   .sticker-strip, .simple .sticker-strip { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, 54px); height: auto; gap: 4px; }
 }
+
+/* Phones held upright: the less-used top buttons open from "more". */
+@media (max-width: 600px) {
+  .topbar { position: relative; }
+  .t-more { display: grid; }
+  .top-extra { display: none; }
+  .top-extra.open { display: flex; position: absolute; top: calc(100% + 6px); right: 8px; z-index: 20; gap: 10px; padding: 10px; border-radius: 20px; background: #fff; box-shadow: 0 10px 30px rgba(40, 20, 60, .25); }
+  .top-actions { overflow: visible; }
+}
+/* Keep Redo next to Undo when every button shows in one row. */
+#btn-new { order: 1; } #btn-undo { order: 2; } #btn-redo { order: 3; } #btn-save { order: 4; } #btn-gallery { order: 5; }
+#btn-download { order: 6; } #btn-print { order: 7; } #btn-sound { order: 8; } #btn-parent { order: 9; } #btn-more { order: 10; }

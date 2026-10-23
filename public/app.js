@@ -758,8 +758,23 @@ $("#btn-print").addEventListener("click", () => {
   img.src = composite().toDataURL("image/png");
 });
 function renderSoundButton() {
-  $("#btn-sound").textContent = settings.sound ? "🔊" : "🔇";
+  $("#btn-sound use").setAttribute("href", settings.sound ? "#i-sound" : "#i-mute");
 }
+
+// Phones: the "more" button shows the less-used buttons; any choice or a tap elsewhere hides them.
+const topExtra = $("#top-extra");
+const moreBtn = $("#btn-more");
+function setMore(open) {
+  topExtra.classList.toggle("open", open);
+  moreBtn.setAttribute("aria-expanded", String(open));
+}
+moreBtn.addEventListener("click", () => setMore(!topExtra.classList.contains("open")));
+topExtra.addEventListener("click", (e) => {
+  if (e.target.closest("button") && !e.target.closest("#btn-parent")) setMore(false);
+});
+document.addEventListener("pointerdown", (e) => {
+  if (!e.target.closest("#top-extra, #btn-more")) setMore(false);
+}, true);
 $("#btn-sound").addEventListener("click", () => {
   settings.sound = !settings.sound;
   settings.voice = settings.sound;
@@ -796,6 +811,7 @@ parentBtn.addEventListener("pointercancel", stopHold);
 parentBtn.addEventListener("contextmenu", (e) => e.preventDefault());
 
 function openParent() {
+  setMore(false);
   $("#set-sound").checked = settings.sound;
   $("#set-voice").checked = settings.voice;
   $("#set-claude").checked = settings.claude;
