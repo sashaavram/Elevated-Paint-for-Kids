@@ -156,10 +156,41 @@ function setCanvasSize(w, h) {
   drawScene(bg, state.scene, W, H);
 }
 
-// Upright paper when the space for the picture is clearly taller than wide.
+// Paper shaped like the space it sits in, so it fills the screen (the long side is 1600).
+function stageRatio() {
+  const stage = $("#stage");
+  const cs = getComputedStyle(stage);
+  const w = stage.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const h = stage.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  return w > 0 && h > 0 ? Math.min(3, Math.max(0.45, w / h)) : 1.6;
+}
 function shapeForScreen() {
-  const r = $("#stage").getBoundingClientRect();
-  return r.height > r.width * 1.15 ? [1000, 1600] : [1600, 1000];
+  const ratio = stageRatio();
+  const even = (n) => Math.round(n / 2) * 2;
+  return ratio >= 1 ? [1600, even(1600 / ratio)] : [even(1600 * ratio), 1600];
+}
+
+// Makes the paper match the screen. A blank page simply gets the new shape; a page with a
+// drawing gets extra paper added around it (the drawing stays the same size, in the middle).
+const MAX_SIDE = 2600;
+function fitPaperToScreen() {
+  const ratio = stageRatio();
+  if (Math.abs(ratio - W / H) / ratio < 0.06) return;
+  if (isBlank() && !undoStack.length) {
+    setCanvasSize(...shapeForScreen());
+    return;
+  }
+  let w = W;
+  let h = H;
+  if (ratio > W / H) w = Math.round(H * ratio);
+  else h = Math.round(W / ratio);
+  if (Math.max(w, h) > MAX_SIDE) return;
+  const old = paint.getImageData(0, 0, W, H);
+  const dx = Math.round((w - W) / 2);
+  const dy = Math.round((h - H) / 2);
+  setCanvasSize(w, h);
+  paint.putImageData(old, dx, dy);
+  scheduleAutosave();
 }
 
 function setScene(id) {
@@ -1158,4 +1189,10 @@ renderSoundButton();
 applyClaudeVisibility();
 renderStickers();
 updateUndoButtons();
-restoreAutosave();
+restoreAutosave().then(fitPaperToScreen);
+// Turning the iPad or resizing the window: a blank page follows the new shape.
+let fitTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(() => { if (isBlank() && !undoStack.length) fitPaperToScreen(); }, 300);
+});

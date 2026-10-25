@@ -307,3 +307,9 @@ button:focus-visible, input:focus-visible { outline: 4px solid var(--active); ou
 /* Pop-ups are in the browser's top layer: stop quick taps from selecting their text. */
 .dlg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .dlg input { -webkit-user-select: text; user-select: text; }
+/* Short screens (an iPad in Safari with its tab and bookmark bars): drop the small
+   group labels so the picture gets the height. */
+@media (max-height: 900px) {
+  .group h2 { display: none; }
+  .ribbon { padding-bottom: 8px; }
+}
