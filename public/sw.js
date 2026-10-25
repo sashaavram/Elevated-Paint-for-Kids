@@ -1,12 +1,14 @@
 // Keeps the app working without internet (everything except "Ask Claude to draw").
-const CACHE = "kidspaint-v9";
+const CACHE = "kidspaint-v10";
 const FILES = [
   "./", "index.html", "styles.css", "app.js", "stamps.js", "art.js", "magic.js", "fill.js", "scenes.js",
   "manifest.webmanifest", "icon.svg", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png",
 ];
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(FILES)).then(() => self.skipWaiting()));
+  // Fresh copies from the network (not the browser's 10-minute copy) for the offline cache.
+  const fresh = FILES.map((f) => new Request(f, { cache: "reload" }));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(fresh)).then(() => self.skipWaiting()));
 });
 
 self.addEventListener("activate", (e) => {
@@ -29,7 +31,8 @@ self.addEventListener("fetch", (e) => {
 
 async function fromNetworkOrSaved(e) {
   const saved = await caches.match(e.request, { ignoreSearch: true });
-  const network = fetch(e.request).then((res) => {
+  // "no-cache" asks GitHub whether the file changed, instead of reusing a copy for 10 minutes.
+  const network = fetch(new Request(e.request.url, { cache: "no-cache", credentials: "same-origin" })).then((res) => {
     // Keep only real answers from this site (not a Wi-Fi login page it was redirected to).
     if (res.ok && !res.redirected) {
       const copy = res.clone();

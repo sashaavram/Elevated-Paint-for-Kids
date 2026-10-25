@@ -664,14 +664,15 @@ async function saveToGallery({ quiet = false } = {}) {
 }
 
 let autosaveTimer;
+async function saveNow() {
+  try {
+    const layer = await toBlob(paintCanvas);
+    await dbDo("autosave", "readwrite", (s) => s.put({ layer, scene: state.scene }, "current"));
+  } catch {}
+}
 function scheduleAutosave() {
   clearTimeout(autosaveTimer);
-  autosaveTimer = setTimeout(async () => {
-    try {
-      const layer = await toBlob(paintCanvas);
-      await dbDo("autosave", "readwrite", (s) => s.put({ layer, scene: state.scene }, "current"));
-    } catch {}
-  }, 1200);
+  autosaveTimer = setTimeout(saveNow, 1200);
 }
 
 async function loadLayer(blob, scene) {
@@ -1174,8 +1175,29 @@ for (const type of ["gesturestart", "gesturechange"]) document.addEventListener(
 document.addEventListener("dblclick", (e) => e.preventDefault());
 
 // ---------- installable app (Windows "Install app", iPad "Add to Home Screen"), works offline ----------
+// A Home Screen app on iPad isn't restarted when it's reopened; the old page just wakes up.
+// So: look for a new version whenever the app comes back to the screen, and when one has
+// arrived, switch to it the next time the app is put away (the picture is saved first).
 if ("serviceWorker" in navigator && window.isSecureContext) {
-  navigator.serviceWorker.register("sw.js").catch(() => {});
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  let updateWaiting = false;
+  navigator.serviceWorker.register("sw.js").then((reg) => {
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") reg.update().catch(() => {});
+    });
+    setInterval(() => reg.update().catch(() => {}), 30 * 60_000);
+  }).catch(() => {});
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController) return; // first install, nothing to switch
+    if (document.visibilityState === "hidden") saveNow().then(() => location.reload());
+    else updateWaiting = true;
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (updateWaiting && document.visibilityState === "hidden") {
+      updateWaiting = false;
+      saveNow().then(() => location.reload());
+    }
+  });
 }
 
 // ---------- start ----------
